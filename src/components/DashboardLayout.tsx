@@ -18,7 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile"; // Changed from useMobile to useIsMobile
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -27,7 +27,7 @@ interface DashboardLayoutProps {
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile(); // Changed from useMobile to useIsMobile
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
