@@ -110,7 +110,7 @@ const AdminChatInterface = () => {
                           <Badge variant={
                             complaint.status === "Pending" ? "default" :
                             complaint.status === "In Progress" ? "secondary" :
-                            complaint.status === "Resolved" ? "success" : "outline"
+                            complaint.status === "Resolved" ? "secondary" : "outline"
                           }>
                             {complaint.status}
                           </Badge>

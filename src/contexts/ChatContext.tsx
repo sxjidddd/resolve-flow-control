@@ -123,7 +123,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   // Clear the current session
   const clearCurrentSession = () => {
     if (currentSession) {
-      const clearedSession = {
+      const clearedSession: ChatSession = {
         ...currentSession,
         messages: [
           {
@@ -201,7 +201,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     };
     
     // Update the session with the user message
-    const updatedSession = {
+    const updatedSession: ChatSession = {
       ...currentSession,
       messages: [...currentSession.messages, userMessage],
       updatedAt: new Date().toISOString()
@@ -268,7 +268,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       };
       
       // Update the session with the assistant message
-      const finalSession = {
+      const finalSession: ChatSession = {
         ...updatedSession,
         messages: [...updatedSession.messages, assistantMessage],
         updatedAt: new Date().toISOString()

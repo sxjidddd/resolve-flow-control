@@ -11,6 +11,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  avatar?: string; // Added avatar property as optional
 }
 
 // Authentication context interface
@@ -31,6 +32,7 @@ const mockUsers = [
     email: "admin@example.com",
     password: "password123",
     role: "admin" as UserRole,
+    avatar: "https://api.dicebear.com/7.x/personas/svg?seed=admin", // Added avatar URLs
   },
   {
     id: "2",
@@ -38,6 +40,7 @@ const mockUsers = [
     email: "user@example.com",
     password: "password123",
     role: "user" as UserRole,
+    avatar: "https://api.dicebear.com/7.x/personas/svg?seed=user",
   },
   {
     id: "3",
@@ -45,6 +48,7 @@ const mockUsers = [
     email: "support@example.com",
     password: "password123",
     role: "support" as UserRole,
+    avatar: "https://api.dicebear.com/7.x/personas/svg?seed=support",
   },
 ];
 
@@ -87,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: matchedUser.name,
         email: matchedUser.email,
         role: matchedUser.role,
+        avatar: matchedUser.avatar, // Include avatar in authenticated user
       };
       
       // Save user to state and localStorage
@@ -120,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name,
         email,
         role: "user" as UserRole,
+        avatar: `https://api.dicebear.com/7.x/personas/svg?seed=${email}`, // Generate avatar based on email
       };
       
       // Save user to state and localStorage
