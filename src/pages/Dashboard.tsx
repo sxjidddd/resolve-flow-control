@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { MessageSquare, AlertTriangle, CheckCircle, Clock, Inbox, FileCheck } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -9,16 +8,17 @@ import ComplaintCard from "@/components/complaints/ComplaintCard";
 import { Button } from "@/components/ui/button";
 import {
   Complaint,
-  mockComplaints,
   monthlyData,
   categoryData,
   priorityData,
 } from "@/lib/data";
 import { useAuth } from "@/contexts/AuthContext";
+import { useComplaints } from "@/contexts/ComplaintsContext";
 import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { getFilteredComplaints } = useComplaints();
   const navigate = useNavigate();
   const [recentComplaints, setRecentComplaints] = useState<Complaint[]>([]);
   const [stats, setStats] = useState({
@@ -30,19 +30,8 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    // Filter complaints based on user role
-    let filteredComplaints = mockComplaints;
-    
-    if (user?.role === "user") {
-      filteredComplaints = mockComplaints.filter(
-        (complaint) => complaint.userId === user.id
-      );
-    } else if (user?.role === "support") {
-      filteredComplaints = mockComplaints.filter(
-        (complaint) => complaint.assignedTo === user.id ||
-        complaint.status === "Pending"
-      );
-    }
+    // Get filtered complaints based on user role
+    const filteredComplaints = getFilteredComplaints();
     
     // Calculate stats
     const total = filteredComplaints.length;
@@ -59,7 +48,7 @@ export default function Dashboard() {
     );
     
     setRecentComplaints(sortedComplaints.slice(0, 5));
-  }, [user]);
+  }, [user, getFilteredComplaints]);
 
   return (
     <DashboardLayout>

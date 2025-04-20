@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ComplaintCategory, ComplaintPriority } from "@/lib/data";
+import { useComplaints } from "@/contexts/ComplaintsContext";
 
 const formSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
@@ -34,6 +35,7 @@ export default function ComplaintForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   const navigate = useNavigate();
+  const { addComplaint } = useComplaints();
 
   const {
     register,
@@ -71,9 +73,14 @@ export default function ComplaintForm() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // In a real application, you would upload files and submit the form to a backend
-      console.log("Form submitted:", data);
-      console.log("Attachments:", attachments);
+      // Add the complaint to our context
+      addComplaint({
+        title: data.title,
+        description: data.description,
+        category: data.category as ComplaintCategory,
+        priority: data.priority as ComplaintPriority,
+        attachments: attachments.length > 0 ? attachments.map(file => file.name) : undefined,
+      });
       
       toast.success("Complaint submitted successfully!");
       reset();
