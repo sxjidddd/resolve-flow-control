@@ -1,7 +1,7 @@
-
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useComplaints } from "@/contexts/ComplaintsContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,12 +23,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { Search, ArrowUpDown } from "lucide-react";
-import { Complaint, ComplaintStatus, mockComplaints } from "@/lib/data";
-import { toast } from "sonner";
+import { Complaint, ComplaintStatus } from "@/lib/data";
 
 export default function ManageComplaints() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { complaints, updateComplaintStatus } = useComplaints();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -42,7 +42,7 @@ export default function ManageComplaints() {
 
   // Filter and sort complaints
   const filteredComplaints = useMemo(() => {
-    let result = [...mockComplaints];
+    let result = [...complaints];
 
     // Filter by search query
     if (searchQuery.trim()) {
@@ -82,7 +82,8 @@ export default function ManageComplaints() {
     searchQuery,
     statusFilter,
     sortBy,
-    sortOrder
+    sortOrder,
+    complaints
   ]);
 
   const toggleSort = (column: "date" | "priority" | "status") => {
@@ -94,9 +95,8 @@ export default function ManageComplaints() {
     }
   };
 
-  const updateStatus = (complaint: Complaint, newStatus: ComplaintStatus) => {
-    // Simulate API call
-    toast.success(`Status updated to ${newStatus} for complaint #${complaint.id}`);
+  const handleStatusUpdate = (complaint: Complaint, newStatus: ComplaintStatus) => {
+    updateComplaintStatus(complaint.id, newStatus);
   };
 
   const getStatusColor = (status: ComplaintStatus) => {
@@ -228,7 +228,7 @@ export default function ManageComplaints() {
                     <TableCell>
                       <Select
                         defaultValue={complaint.status}
-                        onValueChange={(value) => updateStatus(complaint, value as ComplaintStatus)}
+                        onValueChange={(value) => handleStatusUpdate(complaint, value as ComplaintStatus)}
                       >
                         <SelectTrigger className="w-[130px] h-8">
                           <Badge className={getStatusColor(complaint.status)}>

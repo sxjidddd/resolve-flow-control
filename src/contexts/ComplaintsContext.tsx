@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode } from "react";
 import { 
   Complaint, 
   ComplaintCategory, 
@@ -9,11 +8,13 @@ import {
 } from "@/lib/data";
 import { useAuth } from "./AuthContext";
 import { v4 as uuidv4 } from "uuid";
+import { toast } from "sonner";
 
 interface ComplaintsContextType {
   complaints: Complaint[];
   addComplaint: (complaint: Omit<Complaint, "id" | "createdAt" | "updatedAt" | "userId" | "status">) => void;
   getFilteredComplaints: () => Complaint[];
+  updateComplaintStatus: (complaintId: string, status: ComplaintStatus) => void;
 }
 
 const ComplaintsContext = createContext<ComplaintsContextType | undefined>(undefined);
@@ -52,8 +53,29 @@ export function ComplaintsProvider({ children }: { children: ReactNode }) {
     return complaints;
   };
 
+  const updateComplaintStatus = (complaintId: string, status: ComplaintStatus) => {
+    setComplaints(prevComplaints =>
+      prevComplaints.map(complaint =>
+        complaint.id === complaintId
+          ? {
+              ...complaint,
+              status,
+              updatedAt: new Date().toISOString(),
+              assignedTo: user?.id
+            }
+          : complaint
+      )
+    );
+    toast.success(`Complaint #${complaintId} status updated to ${status}`);
+  };
+
   return (
-    <ComplaintsContext.Provider value={{ complaints, addComplaint, getFilteredComplaints }}>
+    <ComplaintsContext.Provider value={{ 
+      complaints, 
+      addComplaint, 
+      getFilteredComplaints,
+      updateComplaintStatus 
+    }}>
       {children}
     </ComplaintsContext.Provider>
   );
