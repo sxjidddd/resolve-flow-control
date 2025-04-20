@@ -18,6 +18,9 @@ import NewComplaint from "./pages/NewComplaint";
 import ManageComplaints from "./pages/ManageComplaints";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
+import ContactPage from "./pages/ContactPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
+import SettingsPage from "./pages/SettingsPage";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +38,7 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
+              <Route path="/contact" element={<ContactPage />} />
 
               {/* Protected Routes */}
               <Route
@@ -74,6 +78,22 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRoles={["admin", "support"]}>
                     <ManageComplaints />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/analytics"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <AnalyticsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <SettingsPage />
                   </ProtectedRoute>
                 }
               />
