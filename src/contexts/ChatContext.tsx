@@ -50,7 +50,7 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 // Mock API key - in a real app, this would be in environment variables
 // or fetched from a secure backend
-const MOCK_API_KEY = "mock-api-key";
+// const MOCK_API_KEY = "mock-api-key";
 
 // Sample predefined responses
 const predefinedResponses = {
@@ -97,6 +97,15 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   // Helper to get/set Gemini API key in localStorage
   const getGeminiApiKey = () => localStorage.getItem("gemini_api_key") || "";
   const setGeminiApiKey = (val: string) => localStorage.setItem("gemini_api_key", val);
+
+  // Add initialization to set the Gemini API key
+  useEffect(() => {
+    // Set the Gemini API key if not already set
+    if (!localStorage.getItem("gemini_api_key")) {
+      localStorage.setItem("gemini_api_key", "AIzaSyBiGFgcaYKxZKyGSBha-OYRqrgVYoaaBhc");
+      toast.success("Gemini API key has been automatically configured.");
+    }
+  }, []);
 
   // AI API: call Gemini if key exists
   const callGemini = async (messages: ChatMessage[], prompt?: string): Promise<string> => {
