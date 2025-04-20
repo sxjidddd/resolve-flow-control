@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LogIn } from "lucide-react";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -111,7 +112,13 @@ export default function Login() {
             </CardContent>
             <CardFooter className="flex flex-col space-y-2">
               <Button className="w-full" type="submit" disabled={isLoading}>
-                {isLoading ? "Logging in..." : "Login"}
+                {isLoading ? (
+                  "Logging in..."
+                ) : (
+                  <>
+                    <LogIn className="h-4 w-4" /> Login
+                  </>
+                )}
               </Button>
               <p className="text-center text-sm text-muted-foreground">
                 Don't have an account?{" "}
