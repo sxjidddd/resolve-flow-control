@@ -116,21 +116,16 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     }
     
     try {
-      // Prepare messages for the API request
+      // Format conversation history for Gemini
       const formattedMessages = messages
         .filter(msg => msg.role === "user" || msg.role === "assistant")
-        .map(msg => `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`)
-        .join("\n");
-      
-      const systemPrompt = "You are a helpful and concise AI support assistant for ComplaintHub.";
-      const fullPrompt = `${systemPrompt}\n\n${formattedMessages}\n\nAssistant:`;
-      
+        .map(msg => ({
+          role: msg.role,
+          parts: [{ text: msg.content }]
+        }));
+
       const payload = {
-        contents: [
-          {
-            parts: [{ text: fullPrompt }]
-          }
-        ],
+        contents: formattedMessages,
         generationConfig: {
           temperature: 0.7,
           topK: 40,
@@ -139,7 +134,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         }
       };
       
-      const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -154,7 +149,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       }
       
       const data = await response.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";
+      const text = data?.candidates?.[0]?.text || data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";
       return text;
     } catch (error) {
       console.error("Error calling Gemini API:", error);
