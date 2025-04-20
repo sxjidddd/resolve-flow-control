@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useAuth } from "./AuthContext";
 import { useComplaints } from "./ComplaintsContext";
@@ -120,7 +121,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       const formattedMessages = messages
         .filter(msg => msg.role === "user" || msg.role === "assistant")
         .map(msg => ({
-          role: msg.role,
+          role: msg.role === "user" ? "user" : "model",
           parts: [{ text: msg.content }]
         }));
 
@@ -134,7 +135,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         }
       };
       
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+      const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -149,7 +150,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       }
       
       const data = await response.json();
-      const text = data?.candidates?.[0]?.text || data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";
       return text;
     } catch (error) {
       console.error("Error calling Gemini API:", error);
