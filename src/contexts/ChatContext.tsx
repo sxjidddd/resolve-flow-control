@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useAuth } from "./AuthContext";
 import { useComplaints } from "./ComplaintsContext";
@@ -42,6 +41,8 @@ type ChatContextType = {
   detectIntent: (message: string) => Promise<AIAction | null>;
   generateResponse: (complaintId: string) => Promise<string>;
   summarizeComplaint: (complaintId: string) => Promise<string>;
+  getGeminiApiKey: () => string;
+  updateGeminiApiKey: (key: string) => void;
 };
 
 // Create the context
@@ -77,6 +78,8 @@ const predefinedResponses = {
 // Generate a unique ID
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const { complaints, getFilteredComplaints } = useComplaints();
@@ -90,6 +93,50 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       createNewSession();
     }
   }, []);
+
+  // Helper to get/set Gemini API key in localStorage
+  const getGeminiApiKey = () => localStorage.getItem("gemini_api_key") || "";
+  const setGeminiApiKey = (val: string) => localStorage.setItem("gemini_api_key", val);
+
+  // AI API: call Gemini if key exists
+  const callGemini = async (messages: ChatMessage[], prompt?: string): Promise<string> => {
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) {
+      throw new Error("Gemini API key not found.");
+    }
+    // Prepare prompt context
+    const fullPrompt = [
+      ...(prompt ? [{ role: "user", content: prompt }] : []),
+      ...messages.filter((msg) => msg.role === "user" || msg.role === "assistant").map((msg) => ({
+        role: msg.role === "user" ? "user" : "model",
+        parts: [{ text: msg.content }]
+      }))
+    ];
+    const systemPrompt = "You are a helpful and concise AI support assistant for ComplaintHub.";
+
+    const payload = {
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: `${systemPrompt}\n` + messages.map(msg => `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`).join("\n") + "\nAssistant:" }
+          ]
+        }
+      ]
+    };
+    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error("Gemini API request failed");
+    const data = await response.json();
+    // Gemini's response is nested; extract
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, no response.";
+    return text;
+  };
 
   // Create a new chat session
   const createNewSession = () => {
@@ -215,48 +262,50 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     );
     
     try {
-      // Detect intent
-      const intent = await detectIntent(content);
-      
-      // Generate response based on intent
       let responseContent = "";
-      
-      if (intent === "create_complaint") {
-        responseContent = predefinedResponses.create_complaint[
-          Math.floor(Math.random() * predefinedResponses.create_complaint.length)
-        ];
-      } else if (intent === "check_status") {
-        // If user is logged in, show their complaints
-        if (user) {
-          const userComplaints = getFilteredComplaints();
-          if (userComplaints.length > 0) {
-            responseContent = `You have ${userComplaints.length} complaint(s). The most recent one is "${userComplaints[0].title}" with status "${userComplaints[0].status}".`;
+      const geminiApiKey = getGeminiApiKey();
+
+      if (geminiApiKey) {
+        // Use Gemini API for chat
+        responseContent = await callGemini(updatedSession.messages);
+      } else {
+        // Detect intent
+        const intent = await detectIntent(content);
+
+        if (intent === "create_complaint") {
+          responseContent = predefinedResponses.create_complaint[
+            Math.floor(Math.random() * predefinedResponses.create_complaint.length)
+          ];
+        } else if (intent === "check_status") {
+          if (user) {
+            const userComplaints = getFilteredComplaints();
+            if (userComplaints.length > 0) {
+              responseContent = `You have ${userComplaints.length} complaint(s). The most recent one is "${userComplaints[0].title}" with status "${userComplaints[0].status}".`;
+            } else {
+              responseContent = "You don't have any complaints yet. Would you like to create one?";
+            }
           } else {
-            responseContent = "You don't have any complaints yet. Would you like to create one?";
+            responseContent = "Please log in to check your complaint status.";
+          }
+        } else if (intent === "suggest_solution") {
+          if (content.toLowerCase().includes("bill") || content.toLowerCase().includes("payment")) {
+            responseContent = predefinedResponses.faq.billing;
+          } else if (content.toLowerCase().includes("technical") || content.toLowerCase().includes("software") || content.toLowerCase().includes("app")) {
+            responseContent = predefinedResponses.faq.technical;
+          } else if (content.toLowerCase().includes("product") || content.toLowerCase().includes("item")) {
+            responseContent = predefinedResponses.faq.product;
+          } else if (content.toLowerCase().includes("service") || content.toLowerCase().includes("staff")) {
+            responseContent = predefinedResponses.faq.service;
+          } else {
+            responseContent = predefinedResponses.suggest_solution[
+              Math.floor(Math.random() * predefinedResponses.suggest_solution.length)
+            ];
           }
         } else {
-          responseContent = "Please log in to check your complaint status.";
-        }
-      } else if (intent === "suggest_solution") {
-        // Check for keywords to suggest solutions from FAQs
-        if (content.toLowerCase().includes("bill") || content.toLowerCase().includes("payment")) {
-          responseContent = predefinedResponses.faq.billing;
-        } else if (content.toLowerCase().includes("technical") || content.toLowerCase().includes("software") || content.toLowerCase().includes("app")) {
-          responseContent = predefinedResponses.faq.technical;
-        } else if (content.toLowerCase().includes("product") || content.toLowerCase().includes("item")) {
-          responseContent = predefinedResponses.faq.product;
-        } else if (content.toLowerCase().includes("service") || content.toLowerCase().includes("staff")) {
-          responseContent = predefinedResponses.faq.service;
-        } else {
-          responseContent = predefinedResponses.suggest_solution[
-            Math.floor(Math.random() * predefinedResponses.suggest_solution.length)
+          responseContent = predefinedResponses.greetings[
+            Math.floor(Math.random() * predefinedResponses.greetings.length)
           ];
         }
-      } else {
-        // Default response
-        responseContent = predefinedResponses.greetings[
-          Math.floor(Math.random() * predefinedResponses.greetings.length)
-        ];
       }
       
       // Add assistant message
@@ -336,6 +385,12 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     return `Summary of complaint #${complaint.id}:\n- Category: ${complaint.category}\n- Priority: ${complaint.priority}\n- Status: ${complaint.status}\n- Created: ${new Date(complaint.createdAt).toLocaleDateString()}\n- Key issue: ${complaint.title}\n- ${complaint.comments?.length || 0} comments in thread`;
   };
 
+  // Add method to update the Gemini key
+  const updateGeminiApiKey = (key: string) => {
+    setGeminiApiKey(key);
+    toast.success("Gemini API key saved!");
+  };
+
   return (
     <ChatContext.Provider
       value={{
@@ -350,6 +405,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         detectIntent,
         generateResponse,
         summarizeComplaint,
+        getGeminiApiKey,
+        updateGeminiApiKey,
       }}
     >
       {children}

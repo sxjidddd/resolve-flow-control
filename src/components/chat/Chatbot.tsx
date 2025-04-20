@@ -25,61 +25,66 @@ const Chatbot: React.FC<ChatbotProps> = ({ expanded = true, onClose }) => {
     sendMessage,
     isLoading,
     clearCurrentSession,
-    processVoiceInput
-  } = useChat();
-  
+    processVoiceInput,
+    getGeminiApiKey,
+    updateGeminiApiKey
+  } = useChat() as any; // Hack: add Gemini helpers
+
   const [inputValue, setInputValue] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [geminiKey, setGeminiKey] = useState("");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chunks = useRef<BlobPart[]>([]);
-  
-  // Scroll to the bottom of messages whenever messages change
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [currentSession?.messages]);
-  
-  // Handle message submission
+
+  useEffect(() => {
+    setGeminiKey(getGeminiApiKey?.() ?? "");
+  }, [getGeminiApiKey]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!inputValue.trim() || isLoading) return;
-    
+
     await sendMessage(inputValue);
     setInputValue("");
   };
-  
+
   // Start voice recording
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
-      
+
       chunks.current = [];
-      
+
       recorder.ondataavailable = (e) => {
         chunks.current.push(e.data);
       };
-      
+
       recorder.onstop = async () => {
         const audioBlob = new Blob(chunks.current, { type: "audio/wav" });
         await processVoiceInput(audioBlob);
-        
-        // Stop the tracks to release the microphone
+
         stream.getTracks().forEach(track => track.stop());
       };
-      
+
       recorder.start();
       setMediaRecorder(recorder);
       setIsRecording(true);
-      
+
       toast.success("Recording started");
     } catch (error) {
       console.error("Error accessing microphone:", error);
       toast.error("Error accessing microphone. Please check your browser permissions.");
     }
   };
-  
+
   // Stop voice recording
   const stopRecording = () => {
     if (mediaRecorder && isRecording) {
@@ -88,38 +93,51 @@ const Chatbot: React.FC<ChatbotProps> = ({ expanded = true, onClose }) => {
       toast.success("Recording stopped");
     }
   };
-  
-  // Format the timestamp
+
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
-  
+
+  const handleGeminiKeySave = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateGeminiApiKey?.(geminiKey.trim());
+    setShowKeyInput(false);
+  };
+
   return (
     <Card className={`relative ${expanded ? "h-[500px]" : "h-12"} overflow-hidden transition-all duration-300 ease-in-out shadow-lg`}>
       {expanded ? (
         <>
-          {/* Header */}
+          {/* HEADER */}
           <div className="flex items-center justify-between p-3 bg-primary text-primary-foreground">
             <div className="flex items-center gap-2">
               <Bot size={18} />
               <h3 className="font-semibold">AI Support Assistant</h3>
             </div>
             <div className="flex gap-2">
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                className="h-7 px-2 text-primary-foreground hover:bg-primary/80" 
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-primary-foreground hover:bg-primary/80"
                 onClick={clearCurrentSession}
               >
                 <RefreshCw size={16} className="mr-1" />
                 <span className="text-xs">New Chat</span>
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 px-2 text-primary-foreground border-white"
+                onClick={() => setShowKeyInput((x) => !x)}
+              >
+                <span className="text-xs">Gemini API Key</span>
+              </Button>
               {onClose && (
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  className="h-7 px-2 text-primary-foreground hover:bg-primary/80" 
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-primary-foreground hover:bg-primary/80"
                   onClick={onClose}
                 >
                   <span className="text-xs">Minimize</span>
@@ -127,12 +145,30 @@ const Chatbot: React.FC<ChatbotProps> = ({ expanded = true, onClose }) => {
               )}
             </div>
           </div>
-          
+          {showKeyInput && (
+            <div className="p-3 bg-secondary flex items-center gap-2">
+              <form onSubmit={handleGeminiKeySave} className="flex gap-2 items-center w-full">
+                <Input
+                  type="password"
+                  className="w-full"
+                  placeholder="Enter your Gemini API key"
+                  value={geminiKey}
+                  onChange={(e) => setGeminiKey(e.target.value)}
+                />
+                <Button size="sm" type="submit" variant="default">
+                  Save
+                </Button>
+                <Button size="sm" type="button" variant="ghost" onClick={() => setShowKeyInput(false)}>
+                  Cancel
+                </Button>
+              </form>
+            </div>
+          )}
           <Separator />
-          
+
           {/* Messages */}
           <ScrollArea className="flex-1 p-3 h-[380px]">
-            {currentSession?.messages.filter(msg => msg.role !== "system").map((message: ChatMessage) => (
+            {currentSession?.messages.filter((msg: any) => msg.role !== "system").map((message: ChatMessage) => (
               <div key={message.id} className={`mb-4 ${message.role === "user" ? "text-right" : "text-left"}`}>
                 <div className={`inline-block max-w-[80%] ${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"} rounded-lg p-3`}>
                   <div className="flex items-center gap-2 mb-1">
@@ -182,9 +218,9 @@ const Chatbot: React.FC<ChatbotProps> = ({ expanded = true, onClose }) => {
             )}
             <div ref={messagesEndRef} />
           </ScrollArea>
-          
+
           <Separator />
-          
+
           {/* Input Area */}
           <form onSubmit={handleSubmit} className="p-3 bg-card">
             <div className="flex items-end gap-2">
@@ -219,8 +255,8 @@ const Chatbot: React.FC<ChatbotProps> = ({ expanded = true, onClose }) => {
           </form>
         </>
       ) : (
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           className="w-full h-full justify-start"
           onClick={onClose}
         >
@@ -233,3 +269,4 @@ const Chatbot: React.FC<ChatbotProps> = ({ expanded = true, onClose }) => {
 };
 
 export default Chatbot;
+
